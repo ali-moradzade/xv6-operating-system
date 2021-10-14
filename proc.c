@@ -86,6 +86,7 @@ allocproc(void)
   return 0;
 
 found:
+  p->readid = 0;
   p->state = EMBRYO;
   p->pid = nextpid++;
 
@@ -531,4 +532,23 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+int 
+getHelloWorld(void)
+{
+  cprintf("Hello World!\n");
+  return 0;
+}
+
+int 
+getProcCount(void)
+{
+  struct proc *p;
+  int count = 0;
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    if(p->state != UNUSED)
+      count++;
+  return count;
 }
