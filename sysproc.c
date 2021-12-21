@@ -116,7 +116,7 @@ sys_threadCreate(void)
   if(argint(0, &stackptr) < 0)
     return -1;
 
-  return clone((void*) stackptr);
+  return threadCreate((void*) stackptr);
 }
 
 int
