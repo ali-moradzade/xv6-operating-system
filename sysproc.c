@@ -120,8 +120,8 @@ sys_threadCreate(void)
 }
 
 int
-sys_join(void)
+sys_threadWait(void)
 {
-  return join();
+  return threadWait();
 }
 

@@ -738,7 +738,7 @@ threadCreate(void *stack)
 }
 
 int 
-join(void)
+threadWait(void)
 {
   struct proc *p;
   int havekids, pid;
