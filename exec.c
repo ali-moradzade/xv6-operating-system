@@ -94,7 +94,7 @@ exec(char *path, char **argv)
       last = s+1;
   safestrcpy(curproc->name, last, sizeof(curproc->name));
 
-  // current thread 
+  // number of current thread 
   curproc-> threads = 1;
 
   // Commit to the user image.

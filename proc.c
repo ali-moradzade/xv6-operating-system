@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include <stdbool.h>
 
 struct {
   struct spinlock lock;
@@ -93,8 +94,8 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
-  p->stackTop = -1; // initialize stackTop to -1 (illegal value)
-  p->threads = -1;  // initialize threads to -1 (illegal value)
+  p->stackTop = -1; // initialize stackTop to an illegal value
+  p->threads = -1;  // initialize threads to an illegal value
 
   release(&ptable.lock);
 
@@ -138,8 +139,7 @@ userinit(void)
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
 
-  //only one thread is executing for this process
-  p->threads = 1;
+  p->threads = 1;   // one thread is executing for this process
 
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
@@ -175,13 +175,13 @@ growproc(int n)
   acquire(&thread);
   sz = curproc->sz;
   if(n > 0){
-    if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0){
+    if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0) {
       release(&thread);
       return -1;
     }
       
   } else if(n < 0){
-    if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0){
+    if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0) {
       release(&thread);
       return -1;
     }
@@ -190,10 +190,11 @@ growproc(int n)
 
   curproc->sz = sz;
   acquire(&ptable.lock);
-  // we should update sz in all threads due to existence of clone system call
+
+  // we must update sz in all threads 
   struct proc *p;
   int numberOfChildren;
-  // check if it is a child or parent
+
   if(curproc->threads == -1) //child
   {
     // update parents sz
@@ -215,7 +216,7 @@ growproc(int n)
       }
     }
   }
-  else{ // is not a child
+  else{ // parent
     numberOfChildren = curproc->threads - 1;
     if(numberOfChildren <= 0){
       release(&ptable.lock);
@@ -350,7 +351,6 @@ check_pgdir_share(struct proc *process)
   for(p = ptable.proc; p < &ptable.proc[NPROC];p++){
     if(p != process && p->pgdir == process->pgdir)
       return 0;
-
   }
   return 1;
 }
@@ -371,7 +371,7 @@ wait(void)
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->parent != curproc)
         continue;
-      // only join handles child threads
+      // threadCreate handles child threads
       if(p->threads == -1)
         continue;          
       havekids = 1;
@@ -389,37 +389,12 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+
         // reset stackTop and pgdir if it is the parent
         p->stackTop = -1;
         p->pgdir = 0;
         p->threads = -1; 
 
-        /*
-        // only one thread exists so we can free page table
-        if(p->threads == 1){
-          freevm(p->pgdir);
-          p->pid = 0;
-          p->parent = 0;
-          p->name[0] = 0;
-          p->killed = 0;
-          p->state = UNUSED;
-          // reset stackTop and pgdir if it is the parent
-          p->stackTop = -1;
-          p->pgdir = 0;
-          p->threads = -1;
-
-        }
-        else{
-          p->pid = 0;
-          p->parent = 0;
-          p->name[0] = 0;
-          p->killed = 0;
-          p->state = UNUSED;
-          // reset stackTop and pgdir if it is the parent
-          p->stackTop = -1;
-          p->pgdir = 0;
-          p->threads = -1;
-        }*/
         release(&ptable.lock);
         return pid;
       }
@@ -680,20 +655,20 @@ getProcCount(void)
 int
 threadCreate(void *stack)
 {
-    int pid;
-    // curproc is the current process
-    struct proc *curproc = myproc();
+	int pid;
+	// curproc is the current process
+	struct proc *curproc = myproc();
 	// np is the new process
 	struct proc *np;
 	// allocate process
 	if((np = allocproc()) == 0)
-	  return -1;
+		return -1;
 
 	// increase threads number for parent, default value of threads for child is -1
-    curproc->threads++;
+	curproc->threads++;
 
-    // Remember stack grows downwards Thus the stackTop will be in the address given by parent + one page size
-    np->stackTop = (int)((char*)stack + PGSIZE);
+	// stack grows downwards thus the stackTop will be in the address given by parent + one page size
+	np->stackTop = (int)((char*)stack + PGSIZE);
   // might be at the middle of changing address space in another thread
   acquire(&ptable.lock);
   np->pgdir = curproc->pgdir;
@@ -745,7 +720,7 @@ threadWait(void)
   struct proc *curproc = myproc();
   
   acquire(&ptable.lock);
-  for(;;){
+  while (true) {
     // Scan through table looking for exited children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){

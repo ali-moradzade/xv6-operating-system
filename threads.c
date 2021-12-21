@@ -7,6 +7,7 @@ int stack[4096] __attribute__ ((aligned (4096)));
 int x = 0;
 
 int main(int argc, char *argv[]) {
+  printf(1, "Stack is at %p\n", stack);
   int tid = threadCreate(stack);
 
   if (tid < 0) {
