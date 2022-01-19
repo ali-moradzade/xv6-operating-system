@@ -125,6 +125,11 @@ sys_threadWait(void)
   return threadWait();
 }
 
+/*
+  this is the actual function being called from syscall.c
+  @returns - pidof the terminated child process ‐ if successful
+­             -1, upon failure
+*/
 int sys_wait2(void) {
   int res;
   int retime = 0;
