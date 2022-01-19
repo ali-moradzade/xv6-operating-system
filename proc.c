@@ -140,6 +140,7 @@ userinit(void)
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
   p->ctime= ticks;
+  p->priority = 2;
 
   p->threads = 1;   // one thread is executing for this process
 
@@ -276,7 +277,7 @@ fork(void)
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
-  np->ctime = ticks; // set the new process's creation time
+  np->priority = myproc()->priority;
 
   for(i = 0; i < NOFILE; i++)
     if(curproc->ofile[i])
@@ -464,20 +465,19 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       c->proc = 0;
     }
+	#else
+    #ifdef FCFS
+    // code...
+    #else
+    #ifdef SML
+    // code...
+    #else
+    #ifdef DML
+    // code...
+    #endif
+    #endif
+    #endif
 	#endif
-
-	/*# not working at the moment....
-    ifdef FCFS
-      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-        if(p->state != RUNNABLE)
-          continue;
-      if (minP==null)
-        minP = p;
-      else
-        if(minp.ctime<p.ctime)
-          minp = p;
-
-    #endif*/
 
     release(&ptable.lock);
 
