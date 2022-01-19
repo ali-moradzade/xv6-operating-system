@@ -93,6 +93,7 @@ found:
   p->readid = 0;
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->ctime = ticks;
 
   p->stackTop = -1; // initialize stackTop to an illegal value
   p->threads = -1;  // initialize threads to an illegal value
@@ -760,4 +761,25 @@ threadWait(void)
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(curproc, &ptable.lock);  //DOC: wait-sleep
   }
+}
+
+void updatestatistics() {
+  struct proc *p;
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    switch(p->state) {
+      case SLEEPING:
+        p->stime++;
+        break;
+      case RUNNABLE:
+        p->retime++;
+        break;
+      case RUNNING:
+        p->rutime++;
+        break;
+      default:
+        ;
+    }
+  }
+  release(&ptable.lock);
 }

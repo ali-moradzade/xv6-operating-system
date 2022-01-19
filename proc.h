@@ -52,6 +52,10 @@ struct proc {
   int readid;                  // Keeps account for the read calls
   int stackTop;                // top of the stack
   int threads;                 // the number of threads using the same pgdir
+  uint ctime;                   // Process creation time
+  int stime;                   //process SLEEPING time
+  int retime;                  //process READY(RUNNABLE) time
+  int rutime;                  //process RUNNING time
 };
 
 // Process memory is laid out contiguously, low addresses first:
@@ -59,3 +63,5 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
+
+void updatestatistics();

@@ -28,6 +28,7 @@ int getProcCount(void);
 int getReadCount(void);
 int threadCreate(void*);
 int threadWait(void);
+int wait2(int*, int*, int*);
 
 // ulib.c
 int stat(const char*, struct stat*);

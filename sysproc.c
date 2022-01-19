@@ -125,3 +125,17 @@ sys_threadWait(void)
   return threadWait();
 }
 
+int sys_wait2(void) {
+  int res;
+  int retime = 0;
+  int rutime = 0;
+  int stime = 0;
+  argint(0, &retime);
+  argint(1, &rutime);
+  argint(2, &stime);
+  res = sys_wait();
+  *(int*)retime = myproc()->retime;
+  *(int*)rutime = myproc()->rutime;
+  *(int*)stime = myproc()->stime;
+  return res;
+}

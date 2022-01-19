@@ -147,6 +147,7 @@ main(void)
   static char buf[100];
   int fd;
 
+  int retime, rutime, stime,pid;
   // Ensure that three file descriptors are open.
   while((fd = open("console", O_RDWR)) >= 0){
     if(fd >= 3){
@@ -164,9 +165,18 @@ main(void)
         printf(2, "cannot cd %s\n", buf+3);
       continue;
     }
+    if (buf[0] == 'g' && buf[1] == 'e' && buf[2] == 't' && buf[3] == 'p'
+        && buf[4] == 'i' && buf[5] == 'd') {
+      printf(1, "Process ID: %d\n", getpid());
+      continue;
+    }
     if(fork1() == 0)
       runcmd(parsecmd(buf));
-    wait();
+	else {
+// 	wait();
+      pid=wait2(&retime, &rutime, &stime);
+      printf(1, "pid:%d retime:%d rutime%d stime:%d\n", pid, retime, rutime, stime);
+	}
   }
   exit();
 }

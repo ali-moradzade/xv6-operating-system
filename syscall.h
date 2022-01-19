@@ -24,4 +24,5 @@
 #define SYS_getProcCount  23
 #define SYS_getReadCount  24
 #define SYS_threadCreate  25
-#define SYS_threadWait 24
+#define SYS_threadWait    26
+#define SYS_wait2         27
