@@ -305,6 +305,30 @@ int wait2(int *retime, int *rutime, int *stime) {
   return res;
 }
 
+#ifdef SML
+struct proc* findreadyprocess(int *index, uint *priority) {
+  int i;
+  struct proc* proc;
+notfound:
+  for (i = 0; i < NPROC - 1; i++) {
+    proc = &ptable.proc[(*index + i) % NPROC];
+    if (proc->state == RUNNABLE && proc->priority == *priority) {
+      *index = (*index + 1) % NPROC;
+      return proc; // found a runnable process with appropriate priority
+    }
+  }
+  if (*priority == 1) {
+    *priority = 3;
+    return 0;
+  }
+  else {
+    *priority -= 1;
+    goto notfound;
+  }
+  return proc;
+}
+#endif
+
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
 // until its parent calls wait() to find out it exited.
@@ -466,15 +490,32 @@ scheduler(void)
       c->proc = 0;
     }
 	#else
+
     #ifdef FCFS
     // code...
     #else
+
     #ifdef SML
-    // code...
+	uint priority = 3;
+	int index = 0;
+    p = findreadyprocess(&index, &priority);
+    if (p == 0) {
+      release(&ptable.lock);
+      continue;
+    }
+      // continue;
+    proc = p;
+    switchuvm(p);
+    p->state = RUNNING;
+    swtch(&cpu->scheduler, proc->context);
+    switchkvm();
+    release(&ptable.lock);
     #else
+
     #ifdef DML
     // code...
     #endif
+
     #endif
     #endif
 	#endif
