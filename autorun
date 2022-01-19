@@ -1,6 +1,12 @@
 #!/bin/bash
 
+FLAG=DEFAULT
+if [ $# -eq 1 ]
+then
+	FLAG=$1
+fi
+
 make clean > /dev/null
 make > /dev/null
-make qemu > /dev/null
+make qemu SCHEDFLAG=$FLAG > /dev/null
 make clean > /dev/null
