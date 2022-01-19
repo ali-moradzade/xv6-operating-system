@@ -131,16 +131,13 @@ sys_threadWait(void)
 ­             -1, upon failure
 */
 int sys_wait2(void) {
-  int res;
-  int retime = 0;
-  int rutime = 0;
-  int stime = 0;
-  argint(0, &retime);
-  argint(1, &rutime);
-  argint(2, &stime);
-  res = sys_wait();
-  *(int*)retime = myproc()->retime;
-  *(int*)rutime = myproc()->rutime;
-  *(int*)stime = myproc()->stime;
-  return res;
+  int *retime, *rutime, *stime;
+  if (argptr(0, (void*)&retime, sizeof(retime)) < 0)
+    return -1;
+  if (argptr(1, (void*)&rutime, sizeof(retime)) < 0)
+    return -1;
+  if (argptr(2, (void*)&stime, sizeof(stime)) < 0)
+    return -1;
+  return wait2(retime, rutime, stime);
 }
+

@@ -145,15 +145,20 @@ int
 main(void)
 {
   // printing the scheduling policy chosen
+  printf(1, "Selected scheduling policy: ");
+
   #ifdef DEFAULT
-    printf(1, "DEFAULT ");
+    printf(1, "default\n");
   #endif
-
   #ifdef FCFS
-    printf(1, "FCFS ");
+    printf(1, "FCFS\n");
   #endif
-
-  printf(1, "scheduling policy chosen\n");
+  #ifdef SML
+    printf(1, "SML\n");
+  #endif
+  #ifdef DML
+    printf(1, "DML\n");
+  #endif
 
   static char buf[100];
   int fd;
@@ -185,7 +190,7 @@ main(void)
       runcmd(parsecmd(buf));
 	else {
 // 	wait();
-      pid=wait2(&retime, &rutime, &stime);
+      pid = wait2(&retime, &rutime, &stime);
       printf(1, "pid:%d retime:%d rutime%d stime:%d\n", pid, retime, rutime, stime);
 	}
   }

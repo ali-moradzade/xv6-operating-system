@@ -139,6 +139,7 @@ userinit(void)
     panic("userinit: out of memory?");
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
+  p->ctime= ticks;
 
   p->threads = 1;   // one thread is executing for this process
 
@@ -275,6 +276,7 @@ fork(void)
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
+  np->ctime = ticks; // set the new process's creation time
 
   for(i = 0; i < NOFILE; i++)
     if(curproc->ofile[i])
@@ -292,6 +294,14 @@ fork(void)
   release(&ptable.lock);
 
   return pid;
+}
+
+int wait2(int *retime, int *rutime, int *stime) {
+  int res = wait();
+  *retime = myproc()->retime;
+  *rutime = myproc()->rutime;
+  *stime = myproc()->stime;
+  return res;
 }
 
 // Exit the current process.  Does not return.
