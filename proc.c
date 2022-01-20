@@ -95,6 +95,17 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->ctime = ticks;
+  p->retime = 0;
+  p->rutime = 0;
+  p->stime = 0;
+  p->fake[0] = '*';
+  p->fake[1] = '*';
+  p->fake[2] = '*';
+  p->fake[3] = '*';
+  p->fake[4] = '*';
+  p->fake[5] = '*';
+  p->fake[6] = '*';
+  p->fake[7] = '*';
 
   p->stackTop = -1; // initialize stackTop to an illegal value
   p->threads = -1;  // initialize threads to an illegal value
@@ -314,7 +325,7 @@ struct proc* findreadyprocess(int *index, uint *priority) {
   int i;
   struct proc* proc2;
 notfound:
-  for (i = 0; i < NPROC - 1; i++) {
+  for (i = 0; i < NPROC; i++) {
     proc2 = &ptable.proc[(*index + i) % NPROC];
     if (proc2->state == RUNNABLE && proc2->priority == *priority) {
       *index = (*index + 1) % NPROC;
@@ -327,6 +338,33 @@ notfound:
   }
   else {
     *priority -= 1; // will try to find a process at a lower priority
+    goto notfound;
+  }
+  return 0;
+}
+#endif
+
+#ifdef DML
+/*
+  this method will find the next process to run
+*/
+struct proc* findreadyprocess(int *index, uint *priority) {
+  int i;
+  struct proc* proc2;
+notfound:
+  for (i = 0; i < NPROC; i++) {
+    proc2 = &ptable.proc[(*index + i) % NPROC];
+    if (proc2->state == RUNNABLE && proc2->priority == *priority) {
+      *index = (*index + 1 + i) % NPROC;
+      return proc2; // found a runnable process with appropriate priority
+    }
+  }
+  if (*priority == 1) {//did not find any process on any of the prorities
+    *priority = 3;
+    return 0;
+  }
+  else {
+    *priority -= 1; //will try to find a process at a lower priority
     goto notfound;
   }
   return 0;
@@ -465,6 +503,7 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
+//   int index = 0;
   
   for(;;){
     // Enable interrupts on this processor.
@@ -493,7 +532,6 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       c->proc = 0;
     }
-//     release(&ptable.lock);
 	#else
 
   	#ifdef FCFS
@@ -538,7 +576,19 @@ scheduler(void)
     #else
 
     #ifdef DML
-    // code...
+	uint priority = 3;
+    p = findreadyprocess(&index, &priority);
+    if (p == 0) {
+      release(&ptable.lock);
+      continue;
+    }
+    myproc() = p;
+    switchuvm(p);
+    p->state = RUNNING;
+	p->tickcounter = 0;
+    swtch(&cpu->scheduler, proc->context);
+    switchkvm();
+    myproc() = 0;
     #endif
 
     #endif
@@ -548,10 +598,18 @@ scheduler(void)
   }
 }
 
-void resettickscycle(int *counter) {
+void decpriority(void) {
+  // acquire(&ptable.lock);
+  myproc()->priority = myproc()->priority == 1 ? 1 : myproc()->priority - 1;
+  // release(&ptable.lock);
+}
+
+int inctickcounter() {
+  int res;
   acquire(&ptable.lock);
-  *counter = 0;
+  res = ++myproc()->tickcounter;
   release(&ptable.lock);
+  return res;
 }
 
 // Enter scheduler.  Must hold only ptable.lock
@@ -659,8 +717,12 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+    if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
+	  #ifdef DML
+	  p->priority = 3; // relevant for DML - process waited for I/O, and now it's read to run again
+	  #endif
+   }
 }
 
 // Wake up all processes sleeping on chan.

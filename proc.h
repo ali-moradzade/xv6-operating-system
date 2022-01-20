@@ -36,11 +36,12 @@ enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
 struct proc {
+  char name[16];               // Process name (debugging)
+  int pid;                     // Process ID
   uint sz;                     // Size of process memory (bytes)
   pde_t* pgdir;                // Page table
   char *kstack;                // Bottom of kernel stack for this process
   enum procstate state;        // Process state
-  int pid;                     // Process ID
   struct proc *parent;         // Parent process
   struct trapframe *tf;        // Trap frame for current syscall
   struct context *context;     // swtch() here to run process
@@ -48,7 +49,6 @@ struct proc {
   int killed;                  // If non-zero, have been killed
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
-  char name[16];               // Process name (debugging)
   int readid;                  // Keeps account for the read calls
   int stackTop;                // top of the stack
   int threads;                 // the number of threads using the same pgdir
@@ -57,6 +57,8 @@ struct proc {
   int retime;                  //process READY(RUNNABLE) time
   int rutime;                  //process RUNNING time
   int priority;
+  int tickcounter;
+  char fake[8];
 };
 
 // Process memory is laid out contiguously, low addresses first:

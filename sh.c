@@ -184,6 +184,9 @@ main(void)
         printf(2, "cannot cd %s\n", buf+3);
       continue;
     }
+	if (buf[0] == 'k') {
+		continue;
+	}
     if (buf[0] == 'g' && buf[1] == 'e' && buf[2] == 't' && buf[3] == 'p'
         && buf[4] == 'i' && buf[5] == 'd') {
       printf(1, "Process ID: %d\n", getpid());

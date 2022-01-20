@@ -13,8 +13,8 @@ struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
-int tickcycle;
-extern void resettickscycle(int*);
+extern int inctickcounter(void);
+extern void decpriority(void);
 
 void
 tvinit(void)
@@ -62,7 +62,7 @@ trap(struct trapframe *tf)
   case T_IRQ0 + IRQ_IDE:
 	#ifdef FCFS
     #else
-    resettickscycle(&tickcycle);
+	// resettickscycle();
     #endif
     ideintr();
     lapiceoi();
@@ -73,7 +73,7 @@ trap(struct trapframe *tf)
   case T_IRQ0 + IRQ_KBD:
 	#ifdef FCFS
     #else
-    resettickscycle(&tickcycle);
+	// resettickscycle();
     #endif
     kbdintr();
     lapiceoi();
@@ -81,7 +81,7 @@ trap(struct trapframe *tf)
   case T_IRQ0 + IRQ_COM1:
 	#ifdef FCFS
     #else
-    resettickscycle(&tickcycle);
+	// resettickscycle();
     #endif
     uartintr();
     lapiceoi();
@@ -118,13 +118,20 @@ trap(struct trapframe *tf)
 #ifdef FCFS
 // do not yield
 #else
+#ifdef DML
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(myproc() && myproc()->state == RUNNING &&
-     tf->trapno == T_IRQ0+IRQ_TIMER && tickcycle++ == QUANTA) {
-    resettickscycle(&tickcycle);
+  if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER && inctickcounter() == QUANTA) {
+    decpriority();
     yield();
   }
+#else
+  // Force process to give up CPU on clock tick.
+  // If interrupts were on while locks held, would need to check nlock.
+  if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER && inctickcounter() == QUANTA) {
+    yield();
+  }
+#endif
 #endif
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
