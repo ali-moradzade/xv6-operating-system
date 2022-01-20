@@ -141,3 +141,8 @@ int sys_wait2(void) {
   return wait2(retime, rutime, stime);
 }
 
+int sys_set_prio(void) {
+  int priority;
+  argint(0, &priority);
+  return set_prio(priority);
+}
