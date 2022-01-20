@@ -307,6 +307,9 @@ int wait2(int *retime, int *rutime, int *stime) {
 }
 
 #ifdef SML
+/*
+	this method will find the next process to run
+*/
 struct proc* findreadyprocess(int *index, uint *priority) {
   int i;
   struct proc* proc2;
@@ -318,12 +321,12 @@ notfound:
       return proc2; // found a runnable process with appropriate priority
     }
   }
-  if (*priority == 1) {
+  if (*priority == 1) { // did not find any process on any of the properties
     *priority = 3;
     return 0;
   }
   else {
-    *priority -= 1;
+    *priority -= 1; // will try to find a process at a lower priority
     goto notfound;
   }
   return 0;
@@ -505,9 +508,6 @@ scheduler(void)
   		  minP = p;
   	  }
   	}
-  	// cprintf("**: ");
-  	// cprintf(p->state);
-  	// cprintf("  \n");
   	if (minP!=NULL){
   	  p = minP;//the process with the smallest creation time
   	  proc = p;
@@ -519,7 +519,6 @@ scheduler(void)
   	  // It should have changed its p->state before coming back.
   	   proc = 0;
     }
-    release(&ptable.lock);
     #else
 
     #ifdef SML
@@ -530,13 +529,12 @@ scheduler(void)
       release(&ptable.lock);
       continue;
     }
-      // continue;
     proc = p;
     switchuvm(p);
     p->state = RUNNING;
     swtch(&cpu->scheduler, proc->context);
     switchkvm();
-//     release(&ptable.lock);
+	proc = 0
     #else
 
     #ifdef DML

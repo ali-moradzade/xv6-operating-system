@@ -60,7 +60,10 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:
-  	// resettickscycle(&tickcycle);
+	#ifdef FCFS
+    #else
+    resettickscycle(&tickcycle);
+    #endif
     ideintr();
     lapiceoi();
     break;
@@ -68,12 +71,18 @@ trap(struct trapframe *tf)
     // Bochs generates spurious IDE1 interrupts.
     break;
   case T_IRQ0 + IRQ_KBD:
-    // resettickscycle(&tickcycle);
+	#ifdef FCFS
+    #else
+    resettickscycle(&tickcycle);
+    #endif
     kbdintr();
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_COM1:
-    // resettickscycle(&tickcycle);
+	#ifdef FCFS
+    #else
+    resettickscycle(&tickcycle);
+    #endif
     uartintr();
     lapiceoi();
     break;
