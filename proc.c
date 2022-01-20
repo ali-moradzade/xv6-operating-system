@@ -309,13 +309,13 @@ int wait2(int *retime, int *rutime, int *stime) {
 #ifdef SML
 struct proc* findreadyprocess(int *index, uint *priority) {
   int i;
-  struct proc* proc;
+  struct proc* proc2;
 notfound:
   for (i = 0; i < NPROC - 1; i++) {
-    proc = &ptable.proc[(*index + i) % NPROC];
-    if (proc->state == RUNNABLE && proc->priority == *priority) {
+    proc2 = &ptable.proc[(*index + i) % NPROC];
+    if (proc2->state == RUNNABLE && proc2->priority == *priority) {
       *index = (*index + 1) % NPROC;
-      return proc; // found a runnable process with appropriate priority
+      return proc2; // found a runnable process with appropriate priority
     }
   }
   if (*priority == 1) {
@@ -326,7 +326,7 @@ notfound:
     *priority -= 1;
     goto notfound;
   }
-  return proc;
+  return 0;
 }
 #endif
 
@@ -490,7 +490,7 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       c->proc = 0;
     }
-    release(&ptable.lock);
+//     release(&ptable.lock);
 	#else
 
   	#ifdef FCFS
@@ -536,7 +536,7 @@ scheduler(void)
     p->state = RUNNING;
     swtch(&cpu->scheduler, proc->context);
     switchkvm();
-    release(&ptable.lock);
+//     release(&ptable.lock);
     #else
 
     #ifdef DML
@@ -546,7 +546,14 @@ scheduler(void)
     #endif
     #endif
 	#endif
+    release(&ptable.lock);
   }
+}
+
+void resettickscycle(int *counter) {
+  acquire(&ptable.lock);
+  *counter = 0;
+  release(&ptable.lock);
 }
 
 // Enter scheduler.  Must hold only ptable.lock
