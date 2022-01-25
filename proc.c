@@ -309,35 +309,96 @@ fork(void)
   return pid;
 }
 
-int wait2(int *retime, int *rutime, int *stime) {
-  int res = wait();
-  *retime = myproc()->retime;
-  *rutime = myproc()->rutime;
-  *stime = myproc()->stime;
-  return res;
+int wait2(int *retime, int *rutime, int *stime)
+{
+  struct proc *p;
+  int havekids, pid;
+  struct proc *curproc = myproc();
+
+  acquire(&ptable.lock);
+  for (;;)
+  {
+    // Scan through table looking for zombie children.
+    havekids = 0;
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    {
+      if (p->parent != curproc)
+        continue;
+
+      havekids = 1;
+      if (p->state == ZOMBIE)
+      {
+        // Found one.
+        *retime = p->retime;
+        *rutime = p->rutime;
+        *stime = p->stime;
+        pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        freevm(p->pgdir);
+        p->state = UNUSED;
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        p->ctime = 0;
+        p->retime = 0;
+        p->rutime = 0;
+        p->stime = 0;
+        p->priority = 0;
+        release(&ptable.lock);
+        return pid;
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if (!havekids || curproc->killed)
+    {
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+    sleep(curproc, &ptable.lock); // DOC: wait-sleep
+  }
 }
 
 #ifdef SML
 /*
-	this method will find the next process to run
+  this method will find the next process to run
 */
-struct proc* findreadyprocess(int *index, uint *priority) {
+struct proc* findreadyprocess(int *index1, int *index2, int *index3, uint *priority) {
   int i;
   struct proc* proc2;
 notfound:
   for (i = 0; i < NPROC; i++) {
-    proc2 = &ptable.proc[(*index + i) % NPROC];
-    if (proc2->state == RUNNABLE && proc2->priority == *priority) {
-      *index = (*index + 1) % NPROC;
-      return proc2; // found a runnable process with appropriate priority
+    switch(*priority) {
+      case 1:
+        proc2 = &ptable.proc[(*index1 + i) % NPROC];
+        if (proc2->state == RUNNABLE && proc2->priority == *priority) {
+          *index1 = (*index1 + 1 + i) % NPROC;
+          return proc2; // found a runnable process with appropriate priority
+        }
+      case 2:
+        proc2 = &ptable.proc[(*index2 + i) % NPROC];
+        if (proc2->state == RUNNABLE && proc2->priority == *priority) {
+          *index2 = (*index2 + 1 + i) % NPROC;
+          return proc2; // found a runnable process with appropriate priority
+        }
+      case 3:
+        proc2 = &ptable.proc[(*index3 + i) % NPROC];
+        if (proc2->state == RUNNABLE && proc2->priority == *priority){
+          *index3 = (*index3 + 1 + i) % NPROC;
+          return proc2; // found a runnable process with appropriate priority
+        }
     }
   }
-  if (*priority == 1) { // did not find any process on any of the properties
+  if (*priority == 1) {//did not find any process on any of the prorities
     *priority = 3;
     return 0;
   }
   else {
-    *priority -= 1; // will try to find a process at a lower priority
+    *priority -= 1; //will try to find a process at a lower priority
     goto notfound;
   }
   return 0;
@@ -348,15 +409,30 @@ notfound:
 /*
   this method will find the next process to run
 */
-struct proc* findreadyprocess(int *index, uint *priority) {
+struct proc* findreadyprocess(int *index1, int *index2, int *index3, uint *priority) {
   int i;
   struct proc* proc2;
 notfound:
   for (i = 0; i < NPROC; i++) {
-    proc2 = &ptable.proc[(*index + i) % NPROC];
-    if (proc2->state == RUNNABLE && proc2->priority == *priority) {
-      *index = (*index + 1 + i) % NPROC;
-      return proc2; // found a runnable process with appropriate priority
+    switch(*priority) {
+      case 1:
+        proc2 = &ptable.proc[(*index1 + i) % NPROC];
+        if (proc2->state == RUNNABLE && proc2->priority == *priority) {
+          *index1 = (*index1 + 1 + i) % NPROC;
+          return proc2; // found a runnable process with appropriate priority
+        }
+      case 2:
+        proc2 = &ptable.proc[(*index2 + i) % NPROC];
+        if (proc2->state == RUNNABLE && proc2->priority == *priority) {
+          *index2 = (*index2 + 1 + i) % NPROC;
+          return proc2; // found a runnable process with appropriate priority
+        }
+      case 3:
+        proc2 = &ptable.proc[(*index3 + i) % NPROC];
+        if (proc2->state == RUNNABLE && proc2->priority == *priority){
+          *index3 = (*index3 + 1 + i) % NPROC;
+          return proc2; // found a runnable process with appropriate priority
+        }
     }
   }
   if (*priority == 1) {//did not find any process on any of the prorities
@@ -503,7 +579,16 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-//   int index = 0;
+
+  int index1 = 0;
+  int index2 = 0;
+  int index3 = 0;
+  int x = index1;
+  index1 = x;
+  x = index2;
+  index2 = x;
+  x = index3;
+  index3 = x;
   
   for(;;){
     // Enable interrupts on this processor.
@@ -561,8 +646,7 @@ scheduler(void)
 
     #ifdef SML
 	uint priority = 3;
-	int index = 0;
-    p = findreadyprocess(&index, &priority);
+    p = findreadyprocess(&index1, &index2, &index3, &priority);
     if (p == 0) {
       release(&ptable.lock);
       continue;
@@ -577,7 +661,7 @@ scheduler(void)
 
     #ifdef DML
 	uint priority = 3;
-    p = findreadyprocess(&index, &priority);
+    p = findreadyprocess(&index1, &index2, &index3, &priority);
     if (p == 0) {
       release(&ptable.lock);
       continue;

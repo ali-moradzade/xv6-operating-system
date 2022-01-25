@@ -146,3 +146,8 @@ int sys_set_prio(void) {
   argint(0, &priority);
   return set_prio(priority);
 }
+
+int sys_yield(void) {
+  yield();
+  return 0;
+}
