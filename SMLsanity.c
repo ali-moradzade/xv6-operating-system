@@ -5,10 +5,10 @@ int main(int argc, char *argv[]) {
 
 	// make sure there is an input from user
 	if (argc != 2){
-		printf(1, "Usage: sanity [n]\n");
+		printf(1, "Usage: SMLsanity [n]\n");
 		exit();
  	} else {
-		printf(1, "Running sanity check...");
+        printf(1, "Running sanity check...");
 	}
 
 	int i, n, j;		// variables
@@ -30,29 +30,26 @@ int main(int argc, char *argv[]) {
 
 			// to ensure independence from previous childs
 			j = (getpid() - 4) % 3;
+            #ifdef SML
+                switch (j) {
+                    case 0:
+                        set_prio(1); break;
+                    case 1:
+                        set_prio(2); break;
+                    case 2:
+                        set_prio(3); break;
+                }
+                // useless calculations to cusome CPU time
+                for (int k = 0; k < 1000000; k++) {}
+            #endif
 
-			switch(j) {
-				case 0: // CPU‐bound process (CPU)
-					// useless calculations to cusome CPU time
-					for (int k = 0; k < 1000000; k++) {}
-					break;
-				case 1: // short tasks based on CPU‐bound process (S‐CPU):
-					for (int k = 0; k < 100; k++) {
-						for (j = 0; j < 1000000; j++) {}
-						yield();	// give up the CPU for one scheduling round
-					}
-					break;
-				case 2: // I/O bound process (IO)
-					for(int k = 0; k < 100; k++) { sleep(1); }
-					break;
-			}
-			exit();		// exit child process
+            exit();		// exit child process
 		}
 		continue;	// keep father busy spawning children
 	}
 
 	// print results for indivisual children running tasks
-	for (i = 0; i < n; i++) {
+	for (i = 0; i < n - 1; i++) {
 		pid = wait2(&retime, &rutime, &stime);
 		int res = (pid - 4) % 3; // correlates to j in the dispatching loop
 
