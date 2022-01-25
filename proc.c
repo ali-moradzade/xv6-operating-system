@@ -674,7 +674,6 @@ scheduler(void)
     switchkvm();
     myproc() = 0;
     #endif
-
     #endif
     #endif
 	#endif

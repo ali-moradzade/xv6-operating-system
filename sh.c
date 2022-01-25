@@ -150,7 +150,7 @@ main(void)
   #ifdef DEFAULT
     printf(1, "default\n");
   #else
-  #ifdef FCFS
+  #ifdef A
     printf(1, "FCFS\n");
   #else
   #ifdef SML
@@ -158,6 +158,10 @@ main(void)
   #else
   #ifdef DML
     printf(1, "DML\n");
+  #else
+  #ifdef PRIORITY
+    printf(1, "PRIORITY\n");
+  #endif
   #endif
   #endif
   #endif
@@ -197,7 +201,7 @@ main(void)
 	else {
 	    wait();
       pid = wait2(&retime, &rutime, &stime);
-      printf(1, "pid:%d retime:%d rutime%d stime:%d\n", pid, retime, rutime, stime);
+      printf(1, "pid: %d, retime: %d, rutime: %d, stime: %d\n", pid, retime, rutime, stime);
 	}
   }
   exit();

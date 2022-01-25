@@ -5,6 +5,6 @@
 int main()
 {
     getHelloWorld();
-    printf(1, "getHelloWorld --> successful\n");
+    printf(1, "\033c\n");
     exit();
 }

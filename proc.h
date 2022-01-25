@@ -52,10 +52,10 @@ struct proc {
   int readid;                  // Keeps account for the read calls
   int stackTop;                // top of the stack
   int threads;                 // the number of threads using the same pgdir
-  uint ctime;                   // Process creation time
-  int stime;                   //process SLEEPING time
-  int retime;                  //process READY(RUNNABLE) time
-  int rutime;                  //process RUNNING time
+  uint ctime;                  // Process creation time
+  int stime;                   // process SLEEPING time
+  int retime;                  // process READY(RUNNABLE) time
+  int rutime;                  // process RUNNING time
   int priority;
   int tickcounter;
   char fake[8];
@@ -66,5 +66,4 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
-
 void updatestatistics();

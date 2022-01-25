@@ -141,12 +141,18 @@ int sys_wait2(void) {
   return wait2(retime, rutime, stime);
 }
 
+/*
+  System Call for setting the priority of the process
+*/
 int sys_set_prio(void) {
   int priority;
   argint(0, &priority);
   return set_prio(priority);
 }
 
+/*
+  For manual calling yield()
+*/
 int sys_yield(void) {
   yield();
   return 0;

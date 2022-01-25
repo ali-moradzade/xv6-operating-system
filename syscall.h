@@ -26,5 +26,5 @@
 #define SYS_threadCreate  25
 #define SYS_threadWait    26
 #define SYS_wait2         27
-#define SYS_set_prio	  28
-#define SYS_yield         29
+#define SYS_set_prio	    28
+#define SYS_yield         29        // Enable calling yield() in tests
