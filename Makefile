@@ -187,7 +187,7 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
-	_sysTest\
+	_cls\
 	_getProcCountTest\
 	_getReadCountTest\
 	_threads\
@@ -267,7 +267,7 @@ EXTRA=\
 	printf.c umalloc.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
-	sysTest.c\
+	cls.c\
 	getProcCountTest.c\
 	getReadCountTest.c\
 	threads.c\

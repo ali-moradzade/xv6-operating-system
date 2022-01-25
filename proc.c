@@ -152,7 +152,7 @@ userinit(void)
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
   p->ctime= ticks;
-  p->priority = 2;
+  p->priority = 3;  // default priority is 3 (based on project description)
 
   p->threads = 1;   // one thread is executing for this process
 
@@ -335,8 +335,9 @@ notfound:
   }
 
   // no luck finding lower-priority processes, reset default priority and exit function
-  if (*priority == 3) {
-    *priority = 1;
+  // 6 is the lowest priority, and the default priority is 6 based on project description
+  if (*priority == 6) {
+    *priority = 3; // we didn't find a process, so we set the priority to default and return
     return 0;
   }
   else {
@@ -366,8 +367,9 @@ notfound:
   }
 
   // no luck finding lower-priority processes, reset default priority and exit function
-  if (*priority == 3) {
-    *priority = 1;
+  // lowest priority is 6, and default priority is 3
+  if (*priority == 6) {
+    *priority = 3;
     return 0;
   }
   else {
@@ -983,7 +985,7 @@ void updatestatistics() {
 int set_prio(int priority) {
 
   // Handle invalid priorities
-  if (priority < 1 || priority > 3)
+  if (priority < 1 || priority > 6)
     return -1;
 
   // Set priority

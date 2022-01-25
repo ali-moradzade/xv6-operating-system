@@ -201,7 +201,7 @@ main(void)
 	else {
 // 	wait();
       pid = wait2(&retime, &rutime, &stime);
-      printf(1, "pid:%d retime:%d rutime%d stime:%d\n", pid, retime, rutime, stime);
+      printf(1, "pid: %d, retime: %d, rutime: %d, stime: %d\n", pid, retime, rutime, stime);
 	}
   }
   exit();
