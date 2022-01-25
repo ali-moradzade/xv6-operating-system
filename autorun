@@ -8,5 +8,5 @@ fi
 
 make clean > /dev/null
 make > /dev/null
-make qemu SCHEDFLAG=$FLAG > /dev/null
+make qemu-nox SCHEDFLAG=$FLAG 
 make clean > /dev/null
