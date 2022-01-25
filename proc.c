@@ -152,7 +152,7 @@ userinit(void)
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
   p->ctime= ticks;
-  p->priority = 3;  // default priority is 3 (based on project description)
+  p->priority = 2;
 
   p->threads = 1;   // one thread is executing for this process
 
@@ -309,42 +309,98 @@ fork(void)
   return pid;
 }
 
-int wait2(int *retime, int *rutime, int *stime) {
-  int res = wait();
-  *retime = myproc()->retime;
-  *rutime = myproc()->rutime;
-  *stime = myproc()->stime;
-  return res;
+int wait2(int *retime, int *rutime, int *stime)
+{
+  struct proc *p;
+  int havekids, pid;
+  struct proc *curproc = myproc();
+
+  acquire(&ptable.lock);
+  for (;;)
+  {
+    // Scan through table looking for zombie children.
+    havekids = 0;
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    {
+      if (p->parent != curproc)
+        continue;
+
+      havekids = 1;
+      if (p->state == ZOMBIE)
+      {
+        // Found one.
+        *retime = p->retime;
+        *rutime = p->rutime;
+        *stime = p->stime;
+        pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        freevm(p->pgdir);
+        p->state = UNUSED;
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        p->ctime = 0;
+        p->retime = 0;
+        p->rutime = 0;
+        p->stime = 0;
+        p->priority = 0;
+        release(&ptable.lock);
+        return pid;
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if (!havekids || curproc->killed)
+    {
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+    sleep(curproc, &ptable.lock); // DOC: wait-sleep
+  }
 }
 
 #ifdef SML
 /*
-	this method will find the next process to run
+  this method will find the next process to run
 */
-struct proc* findreadyprocess(int *index, uint *priority) {
+struct proc* findreadyprocess(int *index1, int *index2, int *index3, uint *priority) {
   int i;
   struct proc* proc2;
-
 notfound:
   for (i = 0; i < NPROC; i++) {
-    proc2 = &ptable.proc[(*index + i) % NPROC];
-    if (proc2->state == RUNNABLE && proc2->priority == *priority) {
-      *index = (*index + 1) % NPROC;
-      return proc2; // found a runnable process with appropriate priority
+    switch(*priority) {
+      case 1:
+        proc2 = &ptable.proc[(*index1 + i) % NPROC];
+        if (proc2->state == RUNNABLE && proc2->priority == *priority) {
+          *index1 = (*index1 + 1 + i) % NPROC;
+          return proc2; // found a runnable process with appropriate priority
+        }
+      case 2:
+        proc2 = &ptable.proc[(*index2 + i) % NPROC];
+        if (proc2->state == RUNNABLE && proc2->priority == *priority) {
+          *index2 = (*index2 + 1 + i) % NPROC;
+          return proc2; // found a runnable process with appropriate priority
+        }
+      case 3:
+        proc2 = &ptable.proc[(*index3 + i) % NPROC];
+        if (proc2->state == RUNNABLE && proc2->priority == *priority){
+          *index3 = (*index3 + 1 + i) % NPROC;
+          return proc2; // found a runnable process with appropriate priority
+        }
     }
   }
-
-  // no luck finding lower-priority processes, reset default priority and exit function
-  // 6 is the lowest priority, and the default priority is 6 based on project description
-  if (*priority == 6) {
-    *priority = 3; // we didn't find a process, so we set the priority to default and return
+  if (*priority == 1) {//did not find any process on any of the prorities
+    *priority = 3;
     return 0;
   }
   else {
-    *priority += 1; // try to find a process with lower priority
-    goto notfound;  // repeat the process
+    *priority -= 1; //will try to find a process at a lower priority
+    goto notfound;
   }
-
   return 0;
 }
 #endif
@@ -353,30 +409,40 @@ notfound:
 /*
   this method will find the next process to run
 */
-struct proc* findreadyprocess(int *index, uint *priority) {
+struct proc* findreadyprocess(int *index1, int *index2, int *index3, uint *priority) {
   int i;
   struct proc* proc2;
-
 notfound:
   for (i = 0; i < NPROC; i++) {
-    proc2 = &ptable.proc[(*index + i) % NPROC];
-    if (proc2->state == RUNNABLE && proc2->priority == *priority) {
-      *index = (*index + 1 + i) % NPROC;
-      return proc2; // found a runnable process with appropriate priority
+    switch(*priority) {
+      case 1:
+        proc2 = &ptable.proc[(*index1 + i) % NPROC];
+        if (proc2->state == RUNNABLE && proc2->priority == *priority) {
+          *index1 = (*index1 + 1 + i) % NPROC;
+          return proc2; // found a runnable process with appropriate priority
+        }
+      case 2:
+        proc2 = &ptable.proc[(*index2 + i) % NPROC];
+        if (proc2->state == RUNNABLE && proc2->priority == *priority) {
+          *index2 = (*index2 + 1 + i) % NPROC;
+          return proc2; // found a runnable process with appropriate priority
+        }
+      case 3:
+        proc2 = &ptable.proc[(*index3 + i) % NPROC];
+        if (proc2->state == RUNNABLE && proc2->priority == *priority){
+          *index3 = (*index3 + 1 + i) % NPROC;
+          return proc2; // found a runnable process with appropriate priority
+        }
     }
   }
-
-  // no luck finding lower-priority processes, reset default priority and exit function
-  // lowest priority is 6, and default priority is 3
-  if (*priority == 6) {
+  if (*priority == 1) {//did not find any process on any of the prorities
     *priority = 3;
     return 0;
   }
   else {
-    *priority += 1; // try to find a process with lower priority
-    goto notfound;  // repeat the process
+    *priority -= 1; //will try to find a process at a lower priority
+    goto notfound;
   }
-
   return 0;
 }
 #endif
@@ -513,6 +579,16 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
+
+  int index1 = 0;
+  int index2 = 0;
+  int index3 = 0;
+  int x = index1;
+  index1 = x;
+  x = index2;
+  index2 = x;
+  x = index3;
+  index3 = x;
   
   for(;;){
     // Enable interrupts on this processor.
@@ -521,115 +597,86 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
 
-	  // the differnt options for scheduling policies, chosen during compilation
+	// the differnt options for scheduling policies, chosen during compilation
     #ifdef DEFAULT
-      for (p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-        if (p->state != RUNNABLE)
-          continue;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE)
+        continue;
 
-        // Switch to chosen process. It is the process's job to release ptable.lock and then reacquire it before jumping back to us.
-        c->proc = p;
-        switchuvm(p);
-        p->state = RUNNING;
-        swtch(&(c->scheduler), p->context);
-        switchkvm();
-        c->proc = 0;
-      }
-	  #else
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
 
-      #ifdef FCFS
-        struct proc *minP = NULL;
-        // Choose the process with minumum creation-time (ctime)
-        for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-          if (p->state == RUNNABLE) {
-            if (minP != NULL) {
-              if (p->ctime < minP->ctime)
-                minP = p;   // If the process is RUNNABLE and has less creation time than others, then this is the chosen one
-            }
-            else {
-              minP = p;
-            }
-          }
-        }
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
 
-        if (minP != NULL) {
-          p = minP;   //the process with the smallest creation time  	      
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+    }
+	#else
 
-          // Switch to chosen process. It is the process's job to release ptable.lock and then reacquire it before jumping back to us.
-          proc = p;
-          switchuvm(p);
-          p->state = RUNNING;
-          swtch(&cpu->scheduler, proc->context);
-          switchkvm();
-          proc = 0;
-        }
-      #else
+  	#ifdef FCFS
+  	struct proc *minP = NULL;
+  	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+  	  if(p->state == RUNNABLE){
+  		if (minP!=NULL){
+  		  if(p->ctime < minP->ctime)
+  			minP = p;
+  		}
+  		else
+  		  minP = p;
+  	  }
+  	}
+  	if (minP!=NULL){
+  	  p = minP;//the process with the smallest creation time
+  	  proc = p;
+  	  switchuvm(p);
+  	  p->state = RUNNING;
+  	  swtch(&cpu->scheduler, proc->context);
+  	  switchkvm();
+  	  // Process is done running for now.
+  	  // It should have changed its p->state before coming back.
+  	   proc = 0;
+    }
+    #else
 
-        #ifdef PRIORITY
-          for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-            struct proc *highest_priority_process = 0;
-            struct proc *p1 = 0;
+    #ifdef SML
+	uint priority = 3;
+    p = findreadyprocess(&index1, &index2, &index3, &priority);
+    if (p == 0) {
+      release(&ptable.lock);
+      continue;
+    }
+    proc = p;
+    switchuvm(p);
+    p->state = RUNNING;
+    swtch(&cpu->scheduler, proc->context);
+    switchkvm();
+	proc = 0
+    #else
 
-            // only use RUNNABLE processes
-            if (p->state != RUNNABLE)
-              continue;
-
-            // choose the highest-priority process among RUNNABLE processes
-            highest_priority_process = p;   // Set current process to run if no other is found
-            for (p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++) {
-              if ((p1->state == RUNNABLE) && (p1->priority < highest_priority_process->priority))
-                highest_priority_process = p1;
-            }
-
-            if (highest_priority_process != 0)
-              p = highest_priority_process;
-          }
-        #else
-
-          #ifdef SML
-            uint priority = 1;
-            int index = 0;
-            p = findreadyprocess(&index, &priority);  // Find the next runnable process given its priority
-
-            // found no process to schedule next
-            if (p == 0) {
-              release(&ptable.lock);
-              continue;
-            }
-
-            // Switch to chosen process. It is the process's job to release ptable.lock and then reacquire it before jumping back to us.
-            proc = p;
-            switchuvm(p);
-            p->state = RUNNING;
-            swtch(&cpu->scheduler, proc->context);
-            switchkvm();
-            proc = 0;
-          #else
-
-            #ifdef DML
-              uint priority = 1;
-              p = findreadyprocess(&index, &priority);  // Find the next runnable process given its priority
-
-              // found no process to schedule next
-              if (p == 0) {
-                release(&ptable.lock);
-                continue;
-              }
-              p->tickcounter = 0;
-
-              // Switch to chosen process. It is the process's job to release ptable.lock and then reacquire it before jumping back to us.
-              proc = p;
-              switchuvm(p);
-              p->state = RUNNING;              
-              swtch(&cpu->scheduler, proc->context);
-              switchkvm();
-              proc = 0;
-            #endif
-          #endif
-        #endif
-      #endif
+    #ifdef DML
+	uint priority = 3;
+    p = findreadyprocess(&index1, &index2, &index3, &priority);
+    if (p == 0) {
+      release(&ptable.lock);
+      continue;
+    }
+    myproc() = p;
+    switchuvm(p);
+    p->state = RUNNING;
+	p->tickcounter = 0;
+    swtch(&cpu->scheduler, proc->context);
+    switchkvm();
+    myproc() = 0;
     #endif
-
+    #endif
+    #endif
+	#endif
     release(&ptable.lock);
   }
 }
@@ -756,7 +803,7 @@ wakeup1(void *chan)
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
 	  #ifdef DML
-	  p->priority = 1; // relevant for DML - process waited for I/O, and now it's read to run again
+	  p->priority = 3; // relevant for DML - process waited for I/O, and now it's read to run again
 	  #endif
    }
 }
@@ -981,18 +1028,11 @@ void updatestatistics() {
   release(&ptable.lock);
 }
 
-
 int set_prio(int priority) {
-
-  // Handle invalid priorities
-  if (priority < 1 || priority > 6)
+  if (priority < 1 || priority > 3)
     return -1;
-
-  // Set priority
   acquire(&ptable.lock);
-  // chpr(getpid(), priority);
-  myproc()->priority = priority;  
+  myproc()->priority = priority;
   release(&ptable.lock);
-  
   return 0;
 }
