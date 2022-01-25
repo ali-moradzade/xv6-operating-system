@@ -945,11 +945,18 @@ void updatestatistics() {
   release(&ptable.lock);
 }
 
+
 int set_prio(int priority) {
+
+  // Handle invalid priorities
   if (priority < 1 || priority > 3)
     return -1;
+
+  // Set priority
   acquire(&ptable.lock);
-  myproc()->priority = priority;
+  // chpr(getpid(), priority);
+  myproc()->priority = priority;  
   release(&ptable.lock);
+  
   return 0;
 }
