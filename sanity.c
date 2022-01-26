@@ -2,7 +2,8 @@
 #include "user.h"
 
 #define PROC_COUNT 5       // number of processes
-#define PRINT_COUNT 5      // number of prints for each process
+#define PRINT_COUNT 7      // number of prints for each process
+#define GROUP_COUNT 2       // number of processes in each group
 
 int main(int argc, char *argv[]) {
 
@@ -37,7 +38,7 @@ int main(int argc, char *argv[]) {
 
 
 	// create child processes and assign tasks to them
-	for (i = 0; i < PROC_COUNT; i++) {
+    for (i = PROC_COUNT - 1; i >=0; i--) {
 		pid = fork();
 		
 		// use only chile processes, consume CPU time and exit
@@ -45,21 +46,21 @@ int main(int argc, char *argv[]) {
 
             // Policy: Priority
             if (policy == 1) {
-                // priority = (i / GROUP_COUNT) + 1;
-                if (i % 2 == 0)
-                    priority = 2;
-                else
-                    priority = 1;
+                priority = (i / GROUP_COUNT) + 1;                
                 set_prio(priority);
-                // printf(1, "* MODIFY process(%d) - priority %d.\n", getpid(), priority);
-                // yield();                // Skip one round to apply priority lvl
-            }            
-            for (int j = 0; j < PRINT_COUNT; j++) {
-			    // printf(1, "* PID %d(%d) : %d\n", getpid(), priority, j);
-                // sleep(10);
-                work(getpid(), priority, j);
+                yield();     // non-preemptive version
             }
-			exit();
+
+            // Policy: SML
+            if (policy == 2) {
+                priority = (i / GROUP_COUNT) + 1;
+                set_prio(priority);
+                // yield();     // non-preemptive version
+            }            
+
+            for (int j = 0; j < PRINT_COUNT; j++)
+                work(getpid(), priority, j);    // critical work
+			exit(); // exit (or will create zombies)
 		}
 		continue;	// keep father busy spawning children
 	}
