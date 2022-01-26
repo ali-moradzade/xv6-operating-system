@@ -27,5 +27,6 @@
 #define SYS_threadWait    26
 #define SYS_wait2         27
 #define SYS_set_prio	    28
-#define SYS_yield         29        // Enable calling yield() in tests
-#define SYS_get_prio	    30
+#define SYS_get_prio	    29
+#define SYS_yield           30      // Enable calling yield() in tests
+#define SYS_change_policy   31      // Change current scheduling policy

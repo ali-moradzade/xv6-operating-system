@@ -113,7 +113,8 @@ extern int sys_threadWait(void);
 extern int sys_wait2(void);
 extern int sys_set_prio(void);
 extern int sys_get_prio(void);
-extern int sys_yield(void);         // Enable calling yield() in tests
+extern int sys_yield(void);               // Enable calling yield() in tests
+extern int sys_change_policy(void);       // Change current scheduling policy
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -142,10 +143,11 @@ static int (*syscalls[])(void) = {
 [SYS_getReadCount]  sys_getReadCount,
 [SYS_threadCreate]  sys_threadCreate,
 [SYS_threadWait]    sys_threadWait,
-[SYS_wait2]			sys_wait2,
-[SYS_set_prio]		sys_set_prio,
-[SYS_get_prio]		sys_get_prio,
-[SYS_yield]    sys_yield,             // Enable calling yield() in tests
+[SYS_wait2]			    sys_wait2,
+[SYS_set_prio]		  sys_set_prio,
+[SYS_get_prio]		  sys_get_prio,
+[SYS_yield]         sys_yield,             // Enable calling yield() in tests
+[SYS_change_policy] sys_change_policy,     // Change the current scheduling policy
 };
 
 void

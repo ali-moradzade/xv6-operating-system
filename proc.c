@@ -24,6 +24,15 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+/*
+  Policy
+    0: Default (Round Robin)
+    1: Priority
+    2: SML
+    3: DML
+*/
+int policy = 0;
+
 void
 pinit(void)
 {
@@ -365,55 +374,13 @@ int wait2(int *retime, int *rutime, int *stime, int *prio)
   }
 }
 
-#ifdef SML
 /*
   this method will find the next process to run
 */
 struct proc* findreadyprocess(int *index1, int *index2, int *index3, uint *priority) {
   int i;
   struct proc* proc2;
-notfound:
-  for (i = 0; i < NPROC; i++) {
-    switch(*priority) {
-      case 1:
-        proc2 = &ptable.proc[(*index1 + i) % NPROC];
-        if (proc2->state == RUNNABLE && proc2->priority == *priority) {
-          *index1 = (*index1 + 1 + i) % NPROC;
-          return proc2; // found a runnable process with appropriate priority
-        }
-      case 2:
-        proc2 = &ptable.proc[(*index2 + i) % NPROC];
-        if (proc2->state == RUNNABLE && proc2->priority == *priority) {
-          *index2 = (*index2 + 1 + i) % NPROC;
-          return proc2; // found a runnable process with appropriate priority
-        }
-      case 3:
-        proc2 = &ptable.proc[(*index3 + i) % NPROC];
-        if (proc2->state == RUNNABLE && proc2->priority == *priority){
-          *index3 = (*index3 + 1 + i) % NPROC;
-          return proc2; // found a runnable process with appropriate priority
-        }
-    }
-  }
-  if (*priority == 1) { // did not find any process on any of the prorities
-    *priority = 3;
-    return 0;
-  }
-  else {
-    *priority -= 1; // will try to find a process at a lower priority
-    goto notfound;
-  }
-  return 0;
-}
-#endif
 
-#ifdef DML
-/*
-  this method will find the next process to run
-*/
-struct proc* findreadyprocess(int *index1, int *index2, int *index3, uint *priority) {
-  int i;
-  struct proc* proc2;
 notfound:
   for (i = 0; i < NPROC; i++) {
     switch(*priority) {
@@ -447,7 +414,6 @@ notfound:
   }
   return 0;
 }
-#endif
 
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
@@ -585,96 +551,74 @@ scheduler(void)
   int index1 = 0;
   int index2 = 0;
   int index3 = 0;
-  int x = index1;
-  index1 = x;
-  x = index2;
-  index2 = x;
-  x = index3;
-  index3 = x;
   
   for(;;) {
     // Enable interrupts on this processor.
     sti();    
 
     // Loop over process table looking for process to run.
-    acquire(&ptable.lock);    
+    acquire(&ptable.lock);
 
-	  // the differnt options for scheduling policies, chosen during compilation
-    #ifdef DEFAULT
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-      if (p->state != RUNNABLE)
-        continue;
 
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-      c->proc = 0;
-      // p->priority = 100;
-    }
-	  #else
+      if (policy == 0) {
+        // Default - Round Robin
+        if (p->state != RUNNABLE)
+          continue;
 
-      #ifdef PRIORITY
-      struct proc *highP = 0;
-      struct proc *p1 = 0;
+      } else if (policy == 1) {
+        // Priority
+        struct proc *highP = 0;
+        struct proc *p1 = 0;
 
-      if (p->state != RUNNABLE) continue;
-      
-      // Choose the process with highest priority (among RUNNABLEs)
-      highP = p;
-      for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-        if ((p1->state == RUNNABLE) && (highP->priority > p1->priority))
-          highP = p1;
-      }      
+        if (p->state != RUNNABLE)
+          continue;
+        
+        // Choose the process with highest priority (among RUNNABLEs)
+        highP = p;
+        for (p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++)
+          if (p1->state == RUNNABLE && p1->priority < highP->priority)
+            highP = p1;
 
-      if (highP != 0) p = highP;
+        // Select process to run next
+        if (highP != 0)
+          p = highP;
 
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-      c->proc = 0;
-      p->priority = 200;
-      #else
-
-        #ifdef SML
+      } else if (policy == 2) {
+        // SML
         uint priority = 3;
         p = findreadyprocess(&index1, &index2, &index3, &priority);
         if (p == 0) {
           release(&ptable.lock);
           continue;
         }
-        
-        c->proc = p;
-        switchuvm(p);
-        p->state = RUNNING;
-        swtch(&(c->scheduler), p->context);
-        switchkvm();
-        c->proc = 0;
-        #else
 
-        #ifdef DML
+      } else if (policy == 4) {
+        // DML
         uint priority = 3;
         p = findreadyprocess(&index1, &index2, &index3, &priority);
         if (p == 0) {
           release(&ptable.lock);
           continue;
         }
-        
-        c->proc = p;
-        switchuvm(p);
-        p->state = RUNNING;
-        swtch(&(c->scheduler), p->context);
-        switchkvm();
-        c->proc = 0;
-        #endif
-      #endif
-    #endif
-	#endif
+      }
 
-  release(&ptable.lock);
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;    
+    }    
+
+    release(&ptable.lock);
   }
 }
 
@@ -1044,4 +988,12 @@ int get_prio(int pid) {
   
   release(&ptable.lock);
   return -1;
+}
+
+/*
+  Change scheduling policy
+*/
+int change_policy(int _policy) {
+  policy = _policy;
+  return 0;
 }

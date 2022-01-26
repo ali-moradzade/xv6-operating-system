@@ -168,3 +168,12 @@ int sys_yield(void) {
   yield();
   return 0;
 }
+
+/*
+  Change scheduling policy
+*/
+int sys_change_policy(void) {
+  int policy;
+  argint(0, &policy);
+  return change_policy(policy);
+}

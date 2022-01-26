@@ -128,6 +128,8 @@ int             threadWait(void);
 int				wait2(int*, int*, int*, int*);
 int				set_prio(int);
 int				get_prio(int);
+int             change_policy(int);
+
 // swtch.S
 void            swtch(struct context**, struct context*);
 

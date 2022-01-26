@@ -29,9 +29,10 @@ int getReadCount(void);
 int threadCreate(void*);
 int threadWait(void);
 int wait2(int*, int*, int*, int*);
-int yield(void);                // Enable calling yield() in tests
 int set_prio(int);
 int get_prio(int);
+int yield(void);                        // Enable calling yield() in tests
+int change_policy(int);                 // Changing the current scheduling policy
 
 // ulib.c
 int stat(const char*, struct stat*);
