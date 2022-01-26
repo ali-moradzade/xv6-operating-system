@@ -32,6 +32,7 @@ static void wakeup1(void *chan);
     3: DML
 */
 int policy = 0;
+int policy_branch = -1;   // ID of the branched policy if exists
 
 void
 pinit(void)
@@ -389,7 +390,7 @@ notfound:
         p = &ptable.proc[(*index1 + i) % NPROC];
         if (p->state == RUNNABLE && p->priority == *priority) {
           *index1 = (*index1 + 1 + i) % NPROC;
-          return p; // found a runnable process with appropriate priority
+          return p; // found a runnable process with appropriate priority          
         }
         break;
 
@@ -595,11 +596,20 @@ scheduler(void)
     acquire(&ptable.lock);
 
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    
+    // Redirect only when there is a tie
+    redirect:
 
       if (policy == 0) {
         // Default - Round Robin
         if (p->state != RUNNABLE)
           continue;
+        
+        // If we have branched from another policy to there, then move back to the original policy
+        if (policy_branch != -1) {
+          policy = policy_branch;
+          policy_branch = -1;       // reset branch ID
+        }
 
       } else if (policy == 1) {
         // Priority
@@ -612,9 +622,18 @@ scheduler(void)
         // Choose the process with highest priority (among RUNNABLEs)
         cprintf("* PID %d(%d) -> ", p->pid, p->priority);
         minP = p;
-        for (p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++)
+        for (p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++) {
+          
+          // If exist any two pairs of processes with the same priority, then we are doing Round-Robin
+          if (p->priority == p1->priority) {
+            policy_branch = 1;    // So we are redirected back to this algorithm after we are done
+            policy = 0;           // Go to Round-Robin
+            goto redirect;        // try again
+          }          
+
           if (p1->state == RUNNABLE && p1->priority < minP->priority)
             minP = p1;
+        }
 
         // Select process to run next
         if (minP != 0) {          
@@ -629,9 +648,13 @@ scheduler(void)
         foundP = findreadyprocess(&index1, &index2, &index3, &index4, &index5, &index6, &priority);
 
         // no luck finding a process to run, chill for now
-        if (foundP != 0)
+        if (foundP != 0) {
           p = foundP;
-        else {
+          
+          policy_branch = 2;    // So we are redirected back to this algorithm after we are done
+          policy = 0;           // Go to Round-Robin
+          goto redirect;        // try again
+        } else {
           if (p->state != RUNNABLE)
             continue;
         }
@@ -640,11 +663,15 @@ scheduler(void)
         // DML
         int priority = 1;  // start from the highest priority
         struct proc *foundP = 0;
-        p = findreadyprocess(&index1, &index2, &index3, &index4, &index5, &index6, &priority);
+        foundP = findreadyprocess(&index1, &index2, &index3, &index4, &index5, &index6, &priority);
 
-        if (foundP != 0)
+        if (foundP != 0) {
           p = foundP;
-        else {
+
+          policy_branch = 3;    // So we are redirected back to this algorithm after we are done
+          policy = 0;           // Go to Round-Robin
+          goto redirect;        // try again
+        } else {
           if (p->state != RUNNABLE)
             continue;
         }
@@ -1046,6 +1073,13 @@ int get_prio(int pid) {
 int change_policy(int _policy) {
   policy = _policy;
   return 0;
+}
+
+/*
+  Get curretn policy
+*/
+int get_policy() {
+  return policy;
 }
 
 /*

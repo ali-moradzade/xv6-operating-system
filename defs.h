@@ -129,6 +129,7 @@ int				wait2(int*, int*, int*, int*);
 int				set_prio(int);
 int				get_prio(int);
 int             change_policy(int);
+int             get_policy(void);
 int             work(int, int, int);
 
 // swtch.S

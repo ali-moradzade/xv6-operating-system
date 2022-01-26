@@ -115,6 +115,7 @@ extern int sys_set_prio(void);
 extern int sys_get_prio(void);
 extern int sys_yield(void);               // Enable calling yield() in tests
 extern int sys_change_policy(void);       // Change current scheduling policy
+extern int sys_get_policy(void);
 extern int sys_work(void);
 
 static int (*syscalls[])(void) = {
@@ -150,6 +151,7 @@ static int (*syscalls[])(void) = {
 [SYS_yield]         sys_yield,             // Enable calling yield() in tests
 [SYS_change_policy] sys_change_policy,     // Change the current scheduling policy
 [SYS_work]          sys_work,
+[SYS_get_policy]    sys_get_policy,
 };
 
 void

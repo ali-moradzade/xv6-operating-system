@@ -115,25 +115,8 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
 
-#ifdef FCFS
-// do not yield
-#else
-#ifdef DML
-  // Force process to give up CPU on clock tick.
-  // If interrupts were on while locks held, would need to check nlock.
-  if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER && inctickcounter() == QUANTA) {
-    decpriority();
-    yield();
-  }
-#else
-  // Force process to give up CPU on clock tick.
-  // If interrupts were on while locks held, would need to check nlock.
-  if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER && inctickcounter() == QUANTA) {
-    yield();
-  }
-#endif
-#endif
-  // Check if the process has been killed since we yielded
-  if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
-    exit();
+  // Only yield() when reached QUANTUM if policy is Round-Robin (0)
+  if (get_policy() == 0)
+    if (myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER && inctickcounter() == QUANTUM)
+      yield();
 }

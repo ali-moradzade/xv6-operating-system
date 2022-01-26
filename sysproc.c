@@ -179,6 +179,13 @@ int sys_change_policy(void) {
 }
 
 /*
+  Get current policy
+*/
+int sys_get_policy(void) {
+  return get_policy();
+}
+
+/*
   Work
 */
 int sys_work(void) {

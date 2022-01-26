@@ -33,6 +33,7 @@ int set_prio(int);
 int get_prio(int);
 int yield(void);                        // Enable calling yield() in tests
 int change_policy(int);                 // Changing the current scheduling policy
+int get_policy();
 int work(int, int, int);
 
 // ulib.c
