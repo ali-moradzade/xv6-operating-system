@@ -393,12 +393,12 @@ notfound:
         }
     }
   }
-  if (*priority == 1) {//did not find any process on any of the prorities
+  if (*priority == 1) { // did not find any process on any of the prorities
     *priority = 3;
     return 0;
   }
   else {
-    *priority -= 1; //will try to find a process at a lower priority
+    *priority -= 1; // will try to find a process at a lower priority
     goto notfound;
   }
   return 0;
@@ -435,12 +435,12 @@ notfound:
         }
     }
   }
-  if (*priority == 1) {//did not find any process on any of the prorities
+  if (*priority == 1) { // did not find any process on any of the prorities
     *priority = 3;
     return 0;
   }
   else {
-    *priority -= 1; //will try to find a process at a lower priority
+    *priority -= 1; // will try to find a process at a lower priority
     goto notfound;
   }
   return 0;
@@ -576,7 +576,7 @@ wait(void)
 void
 scheduler(void)
 {
-  struct proc *p;
+  struct proc *p = 0;
   struct cpu *c = mycpu();
   c->proc = 0;
 
@@ -590,94 +590,87 @@ scheduler(void)
   x = index3;
   index3 = x;
   
-  for(;;){
+  for(;;) {
     // Enable interrupts on this processor.
-    sti();
+    sti();    
 
     // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
+    acquire(&ptable.lock);    
 
-	// the differnt options for scheduling policies, chosen during compilation
+	  // the differnt options for scheduling policies, chosen during compilation
     #ifdef DEFAULT
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+      if (p->state != RUNNABLE)
         continue;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
-
       swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
+      switchkvm();      
       c->proc = 0;
     }
-	#else
+	  #else
 
-  	#ifdef FCFS
-  	struct proc *minP = NULL;
-  	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-  	  if(p->state == RUNNABLE){
-  		if (minP!=NULL){
-  		  if(p->ctime < minP->ctime)
-  			minP = p;
-  		}
-  		else
-  		  minP = p;
-  	  }
-  	}
-  	if (minP!=NULL){
-  	  p = minP;//the process with the smallest creation time
-  	  proc = p;
-  	  switchuvm(p);
-  	  p->state = RUNNING;
-  	  swtch(&cpu->scheduler, proc->context);
-  	  switchkvm();
-  	  // Process is done running for now.
-  	  // It should have changed its p->state before coming back.
-  	   proc = 0;
-    }
-    #else
+      #ifdef PRIORITY
+      struct proc *highP = 0;
+      struct proc *p1 = 0;
 
-    #ifdef SML
-	uint priority = 3;
-    p = findreadyprocess(&index1, &index2, &index3, &priority);
-    if (p == 0) {
-      release(&ptable.lock);
-      continue;
-    }
-    proc = p;
-    switchuvm(p);
-    p->state = RUNNING;
-    swtch(&cpu->scheduler, proc->context);
-    switchkvm();
-	proc = 0
-    #else
+      if (p->state != RUNNABLE) continue;
+      
+      // Choose the process with highest priority (among RUNNABLEs)
+      highP = p;
+      for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        if ((p1->state == RUNNABLE) && (highP->priority > p1->priority))
+          highP = p1;
+      }      
 
-    #ifdef DML
-	uint priority = 3;
-    p = findreadyprocess(&index1, &index2, &index3, &priority);
-    if (p == 0) {
-      release(&ptable.lock);
-      continue;
-    }
-    myproc() = p;
-    switchuvm(p);
-    p->state = RUNNING;
-	p->tickcounter = 0;
-    swtch(&cpu->scheduler, proc->context);
-    switchkvm();
-    myproc() = 0;
-    #endif
-    #endif
+      if (highP != 0) p = highP;
+
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+      c->proc = 0;
+      #else
+
+        #ifdef SML
+        uint priority = 3;
+        p = findreadyprocess(&index1, &index2, &index3, &priority);
+        if (p == 0) {
+          release(&ptable.lock);
+          continue;
+        }
+        
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+        c->proc = 0;
+        #else
+
+        #ifdef DML
+        uint priority = 3;
+        p = findreadyprocess(&index1, &index2, &index3, &priority);
+        if (p == 0) {
+          release(&ptable.lock);
+          continue;
+        }
+        
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+        c->proc = 0;
+        #endif
+      #endif
     #endif
 	#endif
-    release(&ptable.lock);
+
+  release(&ptable.lock);
   }
 }
 

@@ -1,15 +1,16 @@
 #include "types.h"
 #include "user.h"
 
-#define PROC_COUNT 10       // number of processes
+#define PROC_COUNT 20       // number of processes
 #define PRINT_COUNT 10      // number of prints for each process
+#define GROUP_COUNT 10       // number of processes in each group
 
 int main(int argc, char *argv[]) {
 
-	printf(1, "Running sanity check for RoundRobin...\n");
+	printf(1, "Running sanity check for SML...\n");
     sleep(100);
 
-	int i, j;		                                                                // temp variables
+	int i, j, prio = 7;                                                             // temp variables
 	int pid, waiting_time, running_time, sleeping_time, times[PROC_COUNT][3];		// processes variables
 
     for (i = 0; i < PROC_COUNT; i++)
@@ -19,6 +20,10 @@ int main(int argc, char *argv[]) {
 	// create child processes and assign tasks to them
 	for (i = 0; i < PROC_COUNT; i++) {
 		pid = fork();
+
+        // Update priority based on group count
+        if (i % GROUP_COUNT == 0) prio--;
+        set_prio(prio);         // set priority
 		
 		// use only chile processes, consume CPU time and exit
 		if (pid == 0) {

@@ -30,9 +30,7 @@ int threadCreate(void*);
 int threadWait(void);
 int wait2(int*, int*, int*);
 int yield(void);                // Enable calling yield() in tests
-#ifdef SML
 int set_prio(int);
-#endif
 
 // ulib.c
 int stat(const char*, struct stat*);

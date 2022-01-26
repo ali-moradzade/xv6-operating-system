@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
 	printf(1, "Running sanity check for Priority...\n");
     sleep(100);
 
-	int i, j;		                                                                // temp variables
+	int i, j, prio = 7;                                                             // temp variables
 	int pid, waiting_time, running_time, sleeping_time, times[PROC_COUNT][3];		// processes variables
 
     for (i = 0; i < PROC_COUNT; i++)
@@ -21,9 +21,9 @@ int main(int argc, char *argv[]) {
 	for (i = 0; i < PROC_COUNT; i++) {
 		pid = fork();
 
-        #if defined(PRIORITY)
-            set_prio((PROC_COUNT - i) / GROUP_COUNT + 1); break;
-        #endif
+        // Update priority based on group count
+        if (i % GROUP_COUNT == 0) prio--;
+        set_prio(prio);         // set priority
 		
 		// use only chile processes, consume CPU time and exit
 		if (pid == 0) {
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
         times[i][1] += waiting_time;        // waiting time
         times[i][2] += running_time;        // running time
 
-        printf(1, "- PID: %d),\tready: %d,\trunning: %d,\tsleeping: %d,\tturnaround: %d\n", pid, waiting_time, running_time, sleeping_time, waiting_time + running_time + sleeping_time);        
+        printf(1, "- PID: %d),\twaiting: %d,\trunning: %d,\tsleeping: %d,\tturnaround: %d\n", pid, waiting_time, running_time, sleeping_time, waiting_time + running_time + sleeping_time);        
 	}
 
     // Calculate averages

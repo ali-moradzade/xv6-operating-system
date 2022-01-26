@@ -148,23 +148,19 @@ main(void)
   printf(1, "Selected scheduling policy: ");
 
   #ifdef DEFAULT
-    printf(1, "default\n");
+    printf(1, "ROUND ROBIN (Default)\n");
   #else
-  #ifdef A
-    printf(1, "FCFS\n");
-  #else
-  #ifdef SML
-    printf(1, "SML\n");
-  #else
-  #ifdef DML
-    printf(1, "DML\n");
-  #else
-  #ifdef PRIORITY
-    printf(1, "PRIORITY\n");
-  #endif
-  #endif
-  #endif
-  #endif
+    #ifdef SML
+      printf(1, "SML\n");
+    #else
+      #ifdef DML
+        printf(1, "DML\n");
+      #else
+        #ifdef PRIORITY
+          printf(1, "PRIORITY\n");
+        #endif
+      #endif
+    #endif
   #endif
 
   static char buf[100];
