@@ -144,25 +144,6 @@ getcmd(char *buf, int nbuf)
 int
 main(void)
 {
-  // printing the scheduling policy chosen
-  printf(1, "Selected scheduling policy: ");
-
-  #ifdef DEFAULT
-    printf(1, "ROUND ROBIN (Default)\n");
-  #else
-    #ifdef SML
-      printf(1, "SML\n");
-    #else
-      #ifdef DML
-        printf(1, "DML\n");
-      #else
-        #ifdef PRIORITY
-          printf(1, "PRIORITY\n");
-        #endif
-      #endif
-    #endif
-  #endif
-
   static char buf[100];
   int fd;
   int retime, rutime, stime, pid, prio;

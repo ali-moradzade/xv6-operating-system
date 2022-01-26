@@ -1,8 +1,8 @@
 #include "types.h"
 #include "user.h"
 
-#define PROC_COUNT 10       // number of processes
-#define PRINT_COUNT 10      // number of prints for each process
+#define PROC_COUNT 5       // number of processes
+#define PRINT_COUNT 5      // number of prints for each process
 
 int main(int argc, char *argv[]) {
 
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
             printf(1, "+ Policy: 3 - DML\n");
             break;
     }
-    change_policy(policy); // Set policy	    
+    change_policy(policy); // Set policy
 
 
 	// create child processes and assign tasks to them
@@ -42,8 +42,23 @@ int main(int argc, char *argv[]) {
 		
 		// use only chile processes, consume CPU time and exit
 		if (pid == 0) {
-            for (int j = 0; j < PRINT_COUNT; j++)
-			    printf(1, "PID\t%d : %d\n", getpid(), j);
+
+            // Policy: Priority
+            if (policy == 1) {
+                // priority = (i / GROUP_COUNT) + 1;
+                if (i % 2 == 0)
+                    priority = 2;
+                else
+                    priority = 1;
+                set_prio(priority);
+                // printf(1, "* MODIFY process(%d) - priority %d.\n", getpid(), priority);
+                // yield();                // Skip one round to apply priority lvl
+            }            
+            for (int j = 0; j < PRINT_COUNT; j++) {
+			    // printf(1, "* PID %d(%d) : %d\n", getpid(), priority, j);
+                // sleep(10);
+                work(getpid(), priority, j);
+            }
 			exit();
 		}
 		continue;	// keep father busy spawning children

@@ -161,7 +161,7 @@ userinit(void)
   inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
   p->sz = PGSIZE;
   p->ctime= ticks;
-  p->priority = 2;
+  p->priority = 3;  // Defailt priority
 
   p->threads = 1;   // one thread is executing for this process
 
@@ -312,6 +312,7 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
+  cprintf("+ PID %d(%d)\n", np->pid, np->priority);  // Shows description of the newly created process using fork()
 
   release(&ptable.lock);
 
@@ -568,21 +569,24 @@ scheduler(void)
 
       } else if (policy == 1) {
         // Priority
-        struct proc *highP = 0;
+        struct proc *minP = 0;
         struct proc *p1 = 0;
 
         if (p->state != RUNNABLE)
           continue;
         
         // Choose the process with highest priority (among RUNNABLEs)
-        highP = p;
+        cprintf("* PID %d(%d) -> ", p->pid, p->priority);
+        minP = p;
         for (p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++)
-          if (p1->state == RUNNABLE && p1->priority < highP->priority)
-            highP = p1;
+          if (p1->state == RUNNABLE && p1->priority < minP->priority)
+            minP = p1;
 
         // Select process to run next
-        if (highP != 0)
-          p = highP;
+        if (minP != 0) {          
+          p = minP;
+          cprintf("PID %d(%d)\n", p->pid, p->priority);
+        }
 
       } else if (policy == 2) {
         // SML
@@ -603,18 +607,16 @@ scheduler(void)
         }
       }
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
+      // Switch to chosen process.  It is the process's job to release ptable.lock and then reacquire it before jumping back to us.
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
 
+      // Context Switch
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
+      // Process is done running for now. It should have changed its p->state before coming back.
       c->proc = 0;    
     }    
 
@@ -971,9 +973,16 @@ void updatestatistics() {
 
 int set_prio(int priority) {
   acquire(&ptable.lock);
-  myproc()->priority = priority;
+
+  int prio = priority;
+  if (prio < 0 || prio > 6)
+    prio = 5;
+
+  myproc()->priority = prio;  
+  cprintf("* PID %d(%d)\n", myproc()->pid, prio);   // Modified priority
+
   release(&ptable.lock);
-  return 0;
+  return prio;
 }
 
 int get_prio(int pid) {
@@ -995,5 +1004,15 @@ int get_prio(int pid) {
 */
 int change_policy(int _policy) {
   policy = _policy;
+  return 0;
+}
+
+/*
+  Work
+*/
+int work(int pid, int priority, int i) {
+  acquire(&ptable.lock);
+  cprintf("- PID %d(%d): %d\n", pid, priority, i);
+  release(&ptable.lock);
   return 0;
 }

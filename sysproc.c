@@ -177,3 +177,14 @@ int sys_change_policy(void) {
   argint(0, &policy);
   return change_policy(policy);
 }
+
+/*
+  Work
+*/
+int sys_work(void) {
+  int pid, priority, i;
+  argint(0, &pid);
+  argint(1, &priority);
+  argint(2, &i);
+  return work(pid, priority, i);
+}

@@ -30,3 +30,4 @@
 #define SYS_get_prio	    29
 #define SYS_yield           30      // Enable calling yield() in tests
 #define SYS_change_policy   31      // Change current scheduling policy
+#define SYS_work            32
