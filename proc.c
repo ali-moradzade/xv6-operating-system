@@ -309,7 +309,7 @@ fork(void)
   return pid;
 }
 
-int wait2(int *retime, int *rutime, int *stime)
+int wait2(int *retime, int *rutime, int *stime, int *prio)
 {
   struct proc *p;
   int havekids, pid;
@@ -332,6 +332,7 @@ int wait2(int *retime, int *rutime, int *stime)
         *retime = p->retime;
         *rutime = p->rutime;
         *stime = p->stime;
+        *prio = p->priority;
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
@@ -345,6 +346,7 @@ int wait2(int *retime, int *rutime, int *stime)
         p->retime = 0;
         p->rutime = 0;
         p->stime = 0;
+        p->priority = 0;
         p->priority = 0;
         release(&ptable.lock);
         return pid;
@@ -607,8 +609,9 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
       swtch(&(c->scheduler), p->context);
-      switchkvm();      
+      switchkvm();
       c->proc = 0;
+      // p->priority = 100;
     }
 	  #else
 
@@ -633,6 +636,7 @@ scheduler(void)
       swtch(&(c->scheduler), p->context);
       switchkvm();
       c->proc = 0;
+      p->priority = 200;
       #else
 
         #ifdef SML
@@ -1022,10 +1026,22 @@ void updatestatistics() {
 }
 
 int set_prio(int priority) {
-  if (priority < 1 || priority > 3)
-    return -1;
   acquire(&ptable.lock);
   myproc()->priority = priority;
   release(&ptable.lock);
   return 0;
+}
+
+int get_prio(int pid) {
+  struct proc *p;
+
+  acquire(&ptable.lock);
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    if (pid == p->pid) {
+      release(&ptable.lock);
+      return p->priority;
+    }
+  
+  release(&ptable.lock);
+  return -1;
 }

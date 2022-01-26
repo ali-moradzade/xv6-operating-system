@@ -28,9 +28,10 @@ int getProcCount(void);
 int getReadCount(void);
 int threadCreate(void*);
 int threadWait(void);
-int wait2(int*, int*, int*);
+int wait2(int*, int*, int*, int*);
 int yield(void);                // Enable calling yield() in tests
 int set_prio(int);
+int get_prio(int);
 
 // ulib.c
 int stat(const char*, struct stat*);

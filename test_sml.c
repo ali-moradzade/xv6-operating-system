@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
     sleep(100);
 
 	int i, j, prio = 7;                                                             // temp variables
-	int pid, waiting_time, running_time, sleeping_time, times[PROC_COUNT][3];		// processes variables
+	int pid, waiting_time, running_time, sleeping_time, priority, times[PROC_COUNT][3];		// processes variables
 
     for (i = 0; i < PROC_COUNT; i++)
 		for (j = 0; j < 3; j++)
@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
 	for (i = 0; i < PROC_COUNT; i++) {
 
         // wait for the process to exit, then return properties
-		pid = wait2(&waiting_time, &running_time, &sleeping_time);
+		pid = wait2(&waiting_time, &running_time, &sleeping_time, &priority);
         
         times[i][0] += sleeping_time;       // sleeping time
         times[i][1] += waiting_time;        // waiting time

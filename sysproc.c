@@ -131,14 +131,16 @@ sys_threadWait(void)
 ­             -1, upon failure
 */
 int sys_wait2(void) {
-  int *retime, *rutime, *stime;
+  int *retime, *rutime, *stime, *prio;
   if (argptr(0, (void*)&retime, sizeof(retime)) < 0)
     return -1;
   if (argptr(1, (void*)&rutime, sizeof(retime)) < 0)
     return -1;
   if (argptr(2, (void*)&stime, sizeof(stime)) < 0)
     return -1;
-  return wait2(retime, rutime, stime);
+  if (argptr(3, (void*)&prio, sizeof(prio)) < 0)
+    return -1;
+  return wait2(retime, rutime, stime, prio);
 }
 
 /*
@@ -148,6 +150,15 @@ int sys_set_prio(void) {
   int priority;
   argint(0, &priority);
   return set_prio(priority);
+}
+
+/*
+  System Call for getting the priority of the process
+*/
+int sys_get_prio(void) {
+  int pid;
+  argint(0, &pid);
+  return get_prio(pid);
 }
 
 /*

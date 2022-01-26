@@ -28,3 +28,4 @@
 #define SYS_wait2         27
 #define SYS_set_prio	    28
 #define SYS_yield         29        // Enable calling yield() in tests
+#define SYS_get_prio	    30
